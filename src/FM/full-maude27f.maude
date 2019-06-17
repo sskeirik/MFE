@@ -3939,14 +3939,11 @@ fmod META-E-UNIFICATION is
 
   op getVariants* : Module Term Nat EFlags TermList -> VariantFourSet .
   eq getVariants*(M,T,NextVar,EF,TL)
-   = if howMany(onlyEqsVariant(M),T) == 0
-     then {T,none,none,NextVar}
-     else if getVariants**(M,T,NextVar,EF,TL) :: VariantFourSet
-             and
-             getVariants**(M,T,NextVar,EF,TL) =/= empty
-          then getVariants**(M,T,NextVar,EF,TL)
-          else {T,none,none,NextVar}
-          fi
+   = if getVariants**(M,T,NextVar,EF,TL) :: VariantFourSet
+        and
+        getVariants**(M,T,NextVar,EF,TL) =/= empty
+     then getVariants**(M,T,NextVar,EF,TL)
+     else {T,none,none,NextVar}
      fi .
 
   op getVariants** : Module Term Nat EFlags TermList -> VariantFourSet .
