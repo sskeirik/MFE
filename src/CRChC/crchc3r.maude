@@ -528,31 +528,28 @@ fmod CRITICAL-PAIR-SET is
   eq status2qid(proved) = 'proved .
 
   op delete : CritPairSet -> CritPairSet .
+  op delete : CritPairSet CritPairSet -> CritPairSet .
 
-  eq delete(cp(Id, L, L', T, T', pending) CPS)
-    = if T == T'
-      then cp(Id, L, L', T, T', joined) delete(CPS)
-      else cp(Id, L, L', T, T', pending) delete(CPS)
-      fi .
-  eq delete(ccp(Id, L, L', T, T', Cd, pending) CPS)
-    = if T == T'
-      then ccp(Id, L, L', T, T', Cd, joined) delete(CPS)
-      else ccp(Id, L, L', T, T', Cd, pending) delete(CPS)
-      fi .
-  eq delete(CPS) = CPS [owise] .
+  eq delete(CPS) = delete(CPS,none) .
+  eq delete(cp(Id, L, L', T, T', Status) CPS,CPS')
+    = delete(CPS,CPS' cp(Id, L, L', T, T',if Status == pending and-then T == T' then joined else Status fi)) .
+  eq delete(ccp(Id, L, L', T, T', Cd, Status) CPS,CPS')
+    = delete(CPS,CPS' ccp(Id, L, L', T, T', Cd,if Status == pending and-then T == T' then joined else Status fi)) .
+  eq delete(none,CPS') = CPS' .
+
+  op simplify1 : CritPair Module ~> CritPair .
+  eq simplify1(cp(Id, L, L', T, T',pending),M) = cp(Id, L, L', getTerm(metaReduce(M, T)), getTerm(metaReduce(M, T')), pending) .
+  eq simplify1(ccp(Id, L, L', T, T', Cd, pending),M) = ccp(Id, L, L', getTerm(metaReduce(M, T)), getTerm(metaReduce(M, T')), Cd, pending) .
 
   op simplify : CritPairSet Module -> CritPairSet .
+  op simplify : CritPairSet CritPairSet Module -> CritPairSet .
+  eq simplify(CPS,M) = simplify(CPS,none,M) .
 
-  eq simplify(cp(Id, L, L', T, T', pending) CPS, M)
-    = cp(Id, L, L', getTerm(metaReduce(M, T)), getTerm(metaReduce(M, T')), pending)
-      simplify(CPS, M) .
-  eq simplify(ccp(Id, L, L', T, T', Cd, pending) CPS, M)
-    = ccp(Id, L, L', getTerm(metaReduce(M, T)), getTerm(metaReduce(M, T')), Cd, pending)
-      simplify(CPS, M) .
-  eq simplify(CPS, M) = CPS [owise] .
+  eq simplify(CP CPS, CPS', M) = simplify(CPS,CPS' if getStatus(CP) == pending then simplify1(CP,M) else CP fi,M) .
+  eq simplify(none,CPS',M) = CPS' .
 
-  op maximalCPSet : CritPairSet Module -> CritPairSet .
-  op maximalCPSetAux : CritPair CritPairSet CritPairSet Module -> CritPairSet .
+  op maximalCPSet : CritPairSet Module ~> CritPairSet .
+  op maximalCPSetAux : CritPair CritPairSet CritPairSet Module ~> CritPairSet .
   op moreGeneralCP : CritPair CritPair Module -> Bool .
   ceq maximalCPSet(CP CPS, M)
     = maximalCPSetAux(CP, CPS, none, M)
@@ -722,6 +719,9 @@ fmod CRC-CONTEXT-JOINABILITY-UNFEASIBILITY is
   var  KS : KindSet .
   var  Status CPSt : CPStatus .
   vars Id Id' : String .
+
+  op debug : CritPairSet -> CritPairSet .
+  eq debug(CPS) = CPS [print "========================== DEBUG ==============================="] .
 
   op crcContextJoinableAndUnfeasibleCPs : Module CritPairSet -> CritPairSet .
   op $crcContextJoinableAndUnfeasibleCPs : Module CritPair -> CritPair .
@@ -1191,13 +1191,13 @@ fmod CONFLUENCE-CHECK is
   eq confluenceCheck(unitError(QIL)) = cpsError(QIL) .
   eq confluenceCheck(M)
     = crcContextJoinableAndUnfeasibleCPs(M,
-        maximalCPSet(
+        debug(maximalCPSet(
           delete(
             simplify(
               delete(
                 crcCritPairs(M)),
               M)),
-          M)) .
+          M))) .
 endfm
 
 -------------------------------------------------------------------------------
@@ -1215,7 +1215,7 @@ fmod DESCENT-CHECK is
 
   var  M : Module .
   vars T T' T'' T1 T2 T1' T1'' T2' T2'' : Term .
-  var  EqS : EquationSet .
+  var  EqS EqS' : EquationSet .
   vars MA MA' : MembAssert .
   vars MAS MAS' : MembAssertSet .
   vars S S1 S2 : Sort .
@@ -1223,10 +1223,10 @@ fmod DESCENT-CHECK is
   var  X L1 L2 : Qid .
   var  Tp : Type .
   var  TpS : TypeSet .
-  var  V : Variable .
+  var  V V' : Variable .
   var  VS : QidSet .
   var  Subst : Substitution .
-  var  SubstS : SubstitutionSet .
+  var  SubstS SubstS' : SubstitutionSet .
   vars AtS AtS' : AttrSet .
   var  Cd : Condition .
   var  N : Nat .
@@ -1235,42 +1235,44 @@ fmod DESCENT-CHECK is
   var  QIL : QidList .
 
   op eqInstanceSet : Module EquationSet -> EquationSet .
+  eq eqInstanceSet(M,EqS) = eqInstanceSet(M,EqS,none) .
 
-  op instanceSet : Module Equation SubstitutionSet -> EquationSet .
-  op genSubstSet : Module QidSet Substitution -> SubstitutionSet .
-  op genSubstSetAux : Module Qid TypeSet QidSet Substitution -> SubstitutionSet .
+  op eqInstanceSet : Module EquationSet EquationSet -> EquationSet .
+  eq eqInstanceSet(M, (eq T = T' [AtS].) EqS, EqS')
+    = eqInstanceSet(M, EqS, EqS' instanceSet(M, (eq T = T' [AtS].), genSubstSet(specs(M, vars(T)),none), none)) .
+  eq eqInstanceSet(M, (ceq T = T' if Cd [AtS].) EqS, EqS')
+    = eqInstanceSet(M, EqS, EqS' instanceSet(M, (ceq T = T' if Cd [AtS].), genSubstSet(specs(M, vars(T)),none), none)) .
+  eq eqInstanceSet(M, none, EqS') = EqS' .
 
-  eq eqInstanceSet(M, ((eq T = T' [AtS].) EqS))
-    = (instanceSet(M, (eq T = T' [AtS].), genSubstSet(M, vars(T), none))
-       eqInstanceSet(M, EqS)) .
-  eq eqInstanceSet(M, ((ceq T = T' if Cd [AtS].) EqS))
-    = (instanceSet(M, (ceq T = T' if Cd [AtS].), genSubstSet(M, vars(T), none))
-       eqInstanceSet(M, EqS)) .
-  eq eqInstanceSet(M, none) = none .
+  op instanceSet : Module Equation SubstitutionSet EquationSet -> EquationSet .
+  eq instanceSet(M, (eq T = T' [AtS].), (Subst | SubstS), EqS)
+    = instanceSet(M, (eq T = T' [AtS].), SubstS,EqS (eq substitute(M, T, Subst) = substitute(M, T', Subst) [AtS].)) .
+  eq instanceSet(M, (ceq T = T' if Cd [AtS].), (Subst | SubstS), EqS)
+    = instanceSet(M, (ceq T = T' if Cd [AtS].), SubstS, EqS (ceq substitute(M, T, Subst) = substitute(M, T', Subst) if substitute(M, Cd, Subst) [AtS].)) .
+  eq instanceSet(M, Eq, empty, EqS) = EqS .
 
-  eq instanceSet(M, (eq T = T' [AtS].), (Subst | SubstS))
-    = ((eq substitute(M, T, Subst) = substitute(M, T', Subst) [AtS].)
-       instanceSet(M, (eq T = T' [AtS].), SubstS)) .
-  eq instanceSet(M, (ceq T = T' if Cd [AtS].),
-       (Subst | SubstS))
-    = ((ceq substitute(M, T, Subst) = substitute(M, T', Subst)
-          if substitute(M, Cd, Subst) [AtS].)
-       instanceSet(M, (ceq T = T' if Cd [AtS].), SubstS)) .
-  eq instanceSet(M, Eq, empty) = none .
+  op specs : Module QidSet -> SubstitutionSet .
+  eq specs(M,V ; VS) = specs(M,V ; VS,empty) .
 
-  eq genSubstSet(M, V ; VS, Subst)
-    = genSubstSetAux(M, V, getType(V) ; lesserSorts(M, getType(V)), VS, Subst) .
-  eq genSubstSet(M, none, Subst) = Subst .
+  op specs : Module QidSet SubstitutionSet -> SubstitutionSet .
+  eq specs(M,V ; VS,SubstS) = specs(M,VS,spec1(V,lesserSorts(M,getType(V)),none) | SubstS) .
+  eq specs(M,none,SubstS) = SubstS .
 
-  eq genSubstSetAux(M, V, (Tp ; TpS), VS, Subst)
-   = if getType(V) == Tp
-     then (genSubstSet(M, VS, Subst) |
-           genSubstSetAux(M, V, TpS, VS, Subst))
-     else (genSubstSet(M, VS,
-             ((V <- qid(string(getName(V)) + "@" + string(Tp) + ":" + string(Tp))) ; Subst)) |
-           genSubstSetAux(M, V, TpS, VS, Subst))
-     fi .
-  eq genSubstSetAux(M, V, none, VS, Subst) = empty .
+  op spec1 : Variable TypeSet Substitution -> Substitution .
+  eq spec1(V,Tp ; TpS,Subst) = spec1(V,TpS,Subst ; V <- qid(string(getName(V)) + "@" + string(Tp) + ":" + string(Tp))) .
+  eq spec1(V,none,Subst) = Subst .
+
+  op genSubstSet : SubstitutionSet SubstitutionSet -> SubstitutionSet .
+  eq genSubstSet(Subst | SubstS,SubstS') = genSubstSet(SubstS,genSubstSetAux(Subst,SubstS',empty)) .
+  eq genSubstSet(empty,SubstS') = SubstS' .
+
+  op genSubstSetAux : Substitution SubstitutionSet SubstitutionSet -> SubstitutionSet .
+  eq genSubstSetAux(V <- T ; Subst,SubstS,SubstS') = genSubstSetAux(Subst,SubstS,SubstS' | genSubstSetAux2(V <- T,SubstS,empty)) .
+  eq genSubstSetAux(none,SubstS,SubstS') = SubstS | SubstS' .
+
+  op genSubstSetAux2 : Assignment SubstitutionSet SubstitutionSet -> SubstitutionSet .
+  eq genSubstSetAux2(V <- T,Subst | SubstS,SubstS') = genSubstSetAux2(V <- T,SubstS,SubstS' | (V <- T ; Subst)) .
+  eq genSubstSetAux2(V <- T,empty,SubstS') = SubstS' .
 
   op maximalMASet : MembAssertSet Module -> MembAssertSet .
   op maximalMASetAux : MembAssert MembAssertSet MembAssertSet Module -> MembAssertSet .
@@ -1729,7 +1731,7 @@ fmod ChC-NON-OVERLAPPING-CHECK is
   op specializations : Module Term -> TermSet .
   op specializations : Module Term SubstitutionSet -> TermSet .
 
-  eq specializations(M, T) = specializations(M, T, genSubstSet(M, vars(T), none)) .
+  eq specializations(M, T) = specializations(M, T, genSubstSet(specs(M, vars(T)),none)) .
 
   eq specializations(M, T, (Subst | SubstS))
     = substitute(M, T, Subst) | specializations(M, T, SubstS) .
@@ -1972,13 +1974,16 @@ mod CRChC-TOOLS is
   op $processCRCcheck : Tuple{Database, ModuleExpression} -> CRCProcessResult .
   op $processCRCcheck : [Module] -> CRCProcessResult .
 
+  op $processCRCcheck1 : Module Module CritPairSet -> CRCProcessResult .
+  eq $processCRCcheck1(M,M',CPS) = (M,CPS,descentCheck(M')) [print "================================ confluence check COMPLETE ==================================\n" CPS] .
+
   eq processCRCcheck(ME, DB) = $processCRCcheck(evalModExp(ME, DB)) .
 
   eq $processCRCcheck(< DB ; ME >) = $processCRCcheck(getFlatModule(ME, DB)) .
 
   eq $processCRCcheck(M)
     = if coveredCase(M) == ok
-      then (M, confluenceCheck($prepareModule(M, false)), descentCheck($prepareModule(M, false)))
+      then $processCRCcheck1(M, $prepareModule(M, false), confluenceCheck($prepareModule(M, false)))
       else coveredCase(M)
       fi .
   eq $processCRCcheck(unitError(QIL)) = errorMsg(QIL) .
