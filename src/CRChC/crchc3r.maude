@@ -470,14 +470,19 @@ fmod CRITICAL-PAIR is
   vars L L' : Qid .
   var  Cd : Condition .
   var  CPSt : CPStatus .
+  var S : String .
 
   op cp : Qid Qid Term Term CPStatus -> CritPair .
   op ccp : Qid Qid Term Term Condition CPStatus -> CritPair .
   ops lhs rhs : CritPair -> Term .
   eq lhs(cp(L, L', T, T', CPSt)) = T .
   eq lhs(ccp(L, L', T, T', Cd, CPSt)) = T .
+  eq lhs(cp(S, L, L', T, T', CPSt)) = T .
+  eq lhs(ccp(S, L, L', T, T', Cd, CPSt)) = T .
   eq rhs(cp(L, L', T, T', CPSt)) = T' .
   eq rhs(ccp(L, L', T, T', Cd, CPSt)) = T' .
+  eq rhs(cp(S, L, L', T, T', CPSt)) = T' .
+  eq rhs(ccp(S, L, L', T, T', Cd, CPSt)) = T' .
 endfm
 
 view CritPair from TRIV to CRITICAL-PAIR is
@@ -546,6 +551,10 @@ fmod CRITICAL-PAIR-SET is
   eq delete(ccp(Id, L, L', T, T', Cd, Status) CPS,CPS')
     = delete(CPS,CPS' ccp(Id, L, L', T, T', Cd,if Status == pending and-then T == T' then joined else Status fi)) .
   eq delete(none,CPS') = CPS' .
+
+  op delete2 : CritPairSet CritPairSet -> CritPairSet .
+  eq delete2(CP CPS,CPS') = delete2(CPS,CPS' if lhs(CP) == rhs(CP) then none else CP fi) .
+  eq delete2(none,CPS') = CPS' .
 
   op simplify1 : CritPair Module ~> CritPair .
   eq simplify1(cp(Id, L, L', T, T',pending),M) = cp(Id, L, L', getTerm(metaReduce(M, T)), getTerm(metaReduce(M, T')), pending) .
