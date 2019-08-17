@@ -1,0 +1,16 @@
+load /home/stephen/work/rltool/contrib/tools/rltool/tests/systems/ibos-preds.maude
+
+load FM/full-maude27f.maude
+load CRChC/crchc3r.maude
+
+mod CRC-RUN is
+  pr CRChC-TOOLS .
+
+  var M : Module .
+
+  op setup : Module -> Module [memo] .
+  eq setup(M) = removeIds(axCohComplete(setRls(removeVariantAttrs(removeNonExecs(M)),none)), all) .
+
+  op critPairs : Module -> CritPairSet .
+  eq critPairs(M) = delete2(simplify(delete2(crcCritPairs(setup(M))),M)) .
+endm
