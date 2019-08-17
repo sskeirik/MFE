@@ -1,0 +1,4 @@
+load crc.maude
+
+red critPairs(upModule('IBOS-PREDS,true)) .
+quit
