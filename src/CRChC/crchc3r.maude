@@ -552,7 +552,9 @@ fmod CRITICAL-PAIR-SET is
     = delete(CPS,CPS' ccp(Id, L, L', T, T', Cd,if Status == pending and-then T == T' then joined else Status fi)) .
   eq delete(none,CPS') = CPS' .
 
+  op delete2 : CritPairSet -> CritPairSet .
   op delete2 : CritPairSet CritPairSet -> CritPairSet .
+  eq delete2(CPS) = delete2(CPS,none) .
   eq delete2(CP CPS,CPS') = delete2(CPS,CPS' if lhs(CP) == rhs(CP) then none else CP fi) .
   eq delete2(none,CPS') = CPS' .
 
