@@ -8001,7 +8001,10 @@ fmod UNIT is
   eq setRls(unitError(QIL), RlS?) = unitError(QIL) .
   eq setRls(U?, ruleError(QIL) RlS?) = unitError(QIL) .
   eq setRls(mod H is IL sorts SS . SSDS OPDS MAS EqS RlS endm, RlS')
-    = mod H is IL sorts SS . SSDS OPDS MAS EqS RlS' endm .
+    = if RlS == none
+      then fmod H is IL sorts SS . SSDS OPDS MAS EqS endfm
+      else mod H is IL sorts SS . SSDS OPDS MAS EqS RlS endm
+      fi .
   eq setRls(th MN is IL sorts SS . SSDS OPDS MAS EqS RlS endth, RlS')
     = th MN is IL sorts SS . SSDS OPDS MAS EqS RlS' endth .
   eq setRls(fmod H is IL sorts SS . SSDS OPDS MAS EqS endfm, RlS)
