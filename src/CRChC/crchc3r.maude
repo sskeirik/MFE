@@ -1968,7 +1968,7 @@ mod CRChC-TOOLS is
   var  TS : TermSet .
   var  TL : TermList .
   var  ODS : OpDeclSet .
-  var  Eq : Equation .
+  var  Eq Eq' : Equation .
   var  EqS : EquationSet .
   var  Rl : Rule .
   var  RlS : RuleSet .
@@ -1980,6 +1980,7 @@ mod CRChC-TOOLS is
   var  TpL : TypeList .
   var  AtS : AttrSet .
   var  N : Nat .
+  var  EC : EqCondition .
   var  Cd : Condition .
   var  VT : [Tuple{Module, CritPairSet, MembAssertSet}] .
   var  NL : NatList .
@@ -2004,6 +2005,16 @@ mod CRChC-TOOLS is
   sorts CRCProcessResult ChCProcessResult .
   subsorts Error Tuple{Module, CritPairSet, MembAssertSet} < CRCProcessResult .
   subsorts Error Tuple{Module, CritPairSet} < ChCProcessResult .
+
+  op removeVariantAttrs : Module -> Module .
+  op removeVariantAttrs : EquationSet -> EquationSet .
+  eq removeVariantAttrs(M) = setEqs(M,removeVariantAttrs(getEqs(M))) .
+  eq removeVariantAttrs(Eq Eq' EqS) = removeVariantAttrs(Eq) removeVariantAttrs(Eq' EqS) .
+  eq removeVariantAttrs(eq T = T' [variant AtS].) = eq T = T' [AtS]. .
+  eq removeVariantAttrs(eq T = T' [AtS].)         = eq T = T' [AtS]. [owise] .
+  eq removeVariantAttrs(ceq T = T' if EC [variant AtS].) = ceq T = T' if EC [AtS]. .
+  eq removeVariantAttrs(ceq T = T' if EC [AtS].)         = ceq T = T' if EC [AtS]. [owise] .
+
 
   op $prepareModule : Module Bool -> Module .
   ---- The 2nd arg. indicates whether we are in the ground case or not
