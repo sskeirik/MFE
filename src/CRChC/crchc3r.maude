@@ -1080,7 +1080,7 @@ fmod CONFLUENCE-CHECK is
 
   op crcCritPairs1 : Module Equation Equation Nat -> Tuple{CritPairSet, Nat} .
   eq crcCritPairs1(M,Eq,Eq',N) =
-     prepNarrowingSols(M, getLabel(Eq), getLabel(Eq'),
+     prepNarrowingSols(M, root(lhs(Eq)), root(lhs(Eq')),
                       getCts(makeNarrowingModule(M, Eq, Eq')),
                       metaNarrowSearch(
                         getModule(makeNarrowingModule(M, Eq, Eq')),
