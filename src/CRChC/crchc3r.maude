@@ -1080,7 +1080,7 @@ fmod CONFLUENCE-CHECK is
 
   op crcCritPairs1 : Module Equation Equation Nat -> Tuple{CritPairSet, Nat} .
   eq crcCritPairs1(M,Eq,Eq',N) =
-     prepNarrowingSols(M, root(lhs(Eq)), root(lhs(Eq')),
+     prepNarrowingSols(M, getEqName(Eq), getEqName(Eq'),
                       getCts(makeNarrowingModule(M, Eq, Eq')),
                       metaNarrowSearch(
                         getModule(makeNarrowingModule(M, Eq, Eq')),
@@ -1089,6 +1089,13 @@ fmod CONFLUENCE-CHECK is
                         '#_#_#_#[lhs(Eq'), rhs(Eq'), makeNarrowingCond(cond(Eq'))],
                         qid("#V:" + string(getKind(M, leastSort(M, lhs(Eq'))))),
                         none, '+, 1, unbounded, unbounded), N) .
+
+  op getEqName : Equation -> Qid .
+  eq getEqName(eq LHS = RHS [metadata(St1) AtS].) = if find(St1,"id",0) == notFound then root(LHS) else qid("#id#" + string(root(LHS))) fi .
+  eq getEqName(eq LHS = RHS [              AtS].) = root(LHS) [owise] .
+  ---
+  eq getEqName(ceq LHS = RHS if Cond [metadata(St1) AtS].) = if find(St1,"id",0) == notFound then root(LHS) else qid("#id#" + string(root(LHS))) fi .
+  eq getEqName(ceq LHS = RHS if Cond [              AtS].) = root(LHS) [owise] .
 
   op makeNarrowingModule : Module Equation Equation -> Tuple{Module, QidSet} .
   ---- Returns the modified module and the set of variables in the rhs and condition of the
